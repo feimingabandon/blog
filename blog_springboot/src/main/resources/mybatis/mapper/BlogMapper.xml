@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zou.mapper.BlogMapper"> <!--namespace：这里绑到对应的接口-->
+
+    <!--id:方法名，resultType:返回值类型-->
+    <!--查询所有文章，返回：除了文章全文字段值不返回其他都返回-->
+    <!--每次只查询10条数据，会传入一个paging变量，表示当它为1时，表示查询第一条到第10条，为2代表第11到20条-->
+    <!--如果是 2 就先通过where=10找到第 10 条数据，然后通过limit分页去取后面10条，这样大大提高性能-->
+    <!--显示数据库查询结果的从第一条到第五条的数据，0：代表初始的位置，5：代表每次显示的条数-->
+    <select id="selectBlog" resultType="Blog" parameterType="int">
+        select
+        `id`,`title`,`summary`,`user_id` as userId,`audit`,`like`,`release_time` as releaseTime,`mtime`,`browse`,`top`,`tag`
+        from blog
+        where audit=0 and
+        id>= (select id from blog where audit=0 limit #{paging},1)
+        LIMIT 10
+    </select>
+
+    <!--关键字查询-->
+    <select id="selectKeyBlog" resultType="Blog" parameterType="String">
+        select
+        `id`,`title`,`summary`,`user_id` as userId,`audit`,`like`,`release_time` as releaseTime,`mtime`,`browse`,`top`,`tag`
+        from blog
+        where title like concat('%',#{key,jdbcType=VARCHAR},'%') ESCAPE '/' and audit=0
+
+    </select>
+
+    <!--查询未审核或者审核不通过文章,这里的paging和查询全部文章的不一样，这里就单纯是查询结果的第多少条数据开始(0代表第一条数据)-->
+    <select id="queryNoPassBlog" resultType="Blog">
+        select
+        `id`,`title`,`audit`,`user_id` as userId
+        from blog
+        where audit=#{audit} and
+        id>= (select id from blog where audit=#{audit} limit #{paging},1)
+        limit 10
+    </select>
+
+    <!--查询用户有多少未审核的文章-->
+    <select id="selectUserAudit" parameterType="int" resultType="Integer">
+        select
+        `id`
+        from blog
+        where user_id=#{userId} and audit=2
+    </select>
+
+    <!--通过id查询文章-->
+    <select id="selectIdBlog" resultType="Blog" parameterType="int">
+        select
+        `id`,`title`,`summary`,`content`,`user_id` as userId,`audit`,`like`,`release_time` as releaseTime,`mtime`,`browse`,`top`,`tag`
+        from blog
+        where id=#{id}
+    </select>
+
+    <!--插入一篇文章-->
+    <insert id="insertBlog" parameterType="Blog">
+        insert into
+        blog(`title`,`summary`,`content`,`user_id`,`audit`,`like`,`release_time`,`mtime`,`browse`,`top`,`tag`)
+        values(#{title},#{summary},#{content},#{userId},#{audit},#{like},#{releaseTime},#{mtime},#{browse},#{top},#{tag})
+    </insert>
+
+    <!--通过 id 删除博客-->
+    <delete id="deleteBlog" parameterType="Integer">
+        delete from blog where id=#{id}
+    </delete>
+
+    <!--修改博客-->
+    <update id="updateAudit" parameterType="int">
+        update `blog`
+        set `audit`=#{audit}
+        where id=#{blogId}
+    </update>
+
+
+</mapper>
